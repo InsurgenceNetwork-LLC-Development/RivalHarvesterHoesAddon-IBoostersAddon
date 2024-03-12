@@ -1,6 +1,7 @@
 package com.insurgencedev.rivalhoesaddon.listeners;
 
 import me.rivaldev.harvesterhoes.api.events.HoeEssenceReceivePreEnchantEvent;
+import me.rivaldev.harvesterhoes.api.events.HoeMoneyReceiveEnchant;
 import me.rivaldev.harvesterhoes.api.events.HoeXPGainEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -31,6 +32,27 @@ public final class RivalHoesEventListeners implements Listener {
     }
 
     @EventHandler
+    private void onReceive(HoeMoneyReceiveEnchant event) {
+        final String TYPE = "Money";
+        final String NAMESPACE = "RIVAL_HOES";
+        final double[] totalMulti = {0};
+
+        BoosterFindResult pResult = IBoosterAPI.INSTANCE.getCache(event.getPlayer()).getBoosterDataManager().findActiveBooster(TYPE, NAMESPACE);
+        if (pResult instanceof BoosterFindResult.Success boosterResult) {
+            totalMulti[0] += boosterResult.getBoosterData().getMultiplier();
+        }
+
+        IBoosterAPI.INSTANCE.getGlobalBoosterManager().findGlobalBooster(TYPE, NAMESPACE, globalBooster -> {
+            totalMulti[0] += globalBooster.getMultiplier();
+            return null;
+        }, () -> null);
+
+        if (totalMulti[0] > 0) {
+            event.setMoney(calculateAmount(event.getMoney(), totalMulti[0]));
+        }
+    }
+
+    @EventHandler
     private void onGain(HoeXPGainEvent event) {
         final String TYPE = "XP";
         final String NAMESPACE = "RIVAL_HOES";
@@ -52,7 +74,7 @@ public final class RivalHoesEventListeners implements Listener {
     }
 
     private double calculateAmount(double amount, double multi) {
-        return amount * (multi < 1 ? 1 + multi : multi);
+        return amount * (multi <= 1 ? 1 + multi : multi);
     }
 
 }
