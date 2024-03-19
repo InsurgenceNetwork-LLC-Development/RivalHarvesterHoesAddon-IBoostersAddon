@@ -15,81 +15,60 @@ import java.util.Optional;
 
 public final class RivalHoesEventListeners implements Listener {
 
+    private final String namespace = "RIVAL_HOES";
+
     @EventHandler
     private void onReceive(HoeEssenceReceivePreEnchantEvent event) {
-        final String TYPE = "Essence";
-        final String NAMESPACE = "RIVAL_HOES";
-        Player player = event.getPlayer();
-        AtomicDouble totalMulti = new AtomicDouble(getPersonalPermMulti(player, TYPE) + getGlobalPermMulti(TYPE));
+        double multi = getMulti(event.getPlayer(), "Essence");
 
-        BoosterFindResult pResult = IBoosterAPI.INSTANCE.getCache(event.getPlayer()).getBoosterDataManager().findActiveBooster(TYPE, NAMESPACE);
-        if (pResult instanceof BoosterFindResult.Success boosterResult) {
-            totalMulti.getAndAdd(boosterResult.getBoosterData().getMultiplier());
-        }
-
-        IBoosterAPI.INSTANCE.getGlobalBoosterManager().findGlobalBooster(TYPE, NAMESPACE, globalBooster -> {
-            totalMulti.getAndAdd(globalBooster.getMultiplier());
-            return null;
-        }, () -> null);
-
-        if (totalMulti.get() > 0) {
-            event.setEssence(calculateAmount(event.getEssence(), totalMulti.get()));
+        if (multi > 0) {
+            event.setEssence(calculateAmount(event.getEssence(), multi));
         }
     }
 
     @EventHandler
     private void onReceive(HoeMoneyReceiveEnchant event) {
-        final String TYPE = "Money";
-        final String NAMESPACE = "RIVAL_HOES";
-        Player player = event.getPlayer();
-        AtomicDouble totalMulti = new AtomicDouble(getPersonalPermMulti(player, TYPE) + getGlobalPermMulti(TYPE));
+        double multi = getMulti(event.getPlayer(), "Money");
 
-        BoosterFindResult pResult = IBoosterAPI.INSTANCE.getCache(event.getPlayer()).getBoosterDataManager().findActiveBooster(TYPE, NAMESPACE);
-        if (pResult instanceof BoosterFindResult.Success boosterResult) {
-            totalMulti.getAndAdd(boosterResult.getBoosterData().getMultiplier());
-        }
-
-        IBoosterAPI.INSTANCE.getGlobalBoosterManager().findGlobalBooster(TYPE, NAMESPACE, globalBooster -> {
-            totalMulti.getAndAdd(globalBooster.getMultiplier());
-            return null;
-        }, () -> null);
-
-        if (totalMulti.get() > 0) {
-            event.setMoney(calculateAmount(event.getMoney(), totalMulti.get()));
+        if (multi > 0) {
+            event.setMoney(calculateAmount(event.getMoney(), multi));
         }
     }
 
     @EventHandler
     private void onGain(HoeXPGainEvent event) {
-        final String TYPE = "XP";
-        final String NAMESPACE = "RIVAL_HOES";
-        Player player = event.getPlayer();
-        AtomicDouble totalMulti = new AtomicDouble(getPersonalPermMulti(player, TYPE) + getGlobalPermMulti(TYPE));
+        double multi = getMulti(event.getPlayer(), "XP");
 
-        BoosterFindResult pResult = IBoosterAPI.INSTANCE.getCache(event.getPlayer()).getBoosterDataManager().findActiveBooster(TYPE, NAMESPACE);
+        if (multi > 0) {
+            event.setXP(calculateAmount(event.getXP(), multi));
+        }
+    }
+
+    private double getMulti(Player player, String type) {
+        AtomicDouble totalMulti = new AtomicDouble(getPersonalPermMulti(player, type) + getGlobalPermMulti(type));
+
+        BoosterFindResult pResult = IBoosterAPI.INSTANCE.getCache(player).getBoosterDataManager().findActiveBooster(type, namespace);
         if (pResult instanceof BoosterFindResult.Success boosterResult) {
             totalMulti.getAndAdd(boosterResult.getBoosterData().getMultiplier());
         }
 
-        IBoosterAPI.INSTANCE.getGlobalBoosterManager().findGlobalBooster(TYPE, NAMESPACE, globalBooster -> {
+        IBoosterAPI.INSTANCE.getGlobalBoosterManager().findGlobalBooster(type, namespace, globalBooster -> {
             totalMulti.getAndAdd(globalBooster.getMultiplier());
             return null;
         }, () -> null);
 
-        if (totalMulti.get() > 0) {
-            event.setXP(calculateAmount(event.getXP(), totalMulti.get()));
-        }
+        return totalMulti.get();
     }
 
     private double getPersonalPermMulti(Player uuid, String type) {
-        Optional<PermanentBoosterData> foundMulti = Optional.ofNullable(IBoosterAPI.INSTANCE.getCache(uuid).getPermanentBoosts().getPermanentBooster(type, "RIVAL_HOES"));
+        Optional<PermanentBoosterData> foundMulti = Optional.ofNullable(IBoosterAPI.INSTANCE.getCache(uuid).getPermanentBoosts().getPermanentBooster(type, namespace));
         return foundMulti.map(PermanentBoosterData::getMulti).orElse(0d);
     }
 
     private double getGlobalPermMulti(String type) {
         AtomicDouble multi = new AtomicDouble(0d);
 
-        IBoosterAPI.INSTANCE.getGlobalBoosterManager().findPermanentBooster(type, "RIVAL_HOES", data -> {
+        IBoosterAPI.INSTANCE.getGlobalBoosterManager().findPermanentBooster(type, namespace, data -> {
             multi.set(data.getMulti());
             return null;
         }, () -> null);
